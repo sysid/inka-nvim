@@ -1,0 +1,254 @@
+*inka-nvim.txt*  Neovim plugin for editing inka2 flashcards
+
+                    ____  __      __                          _
+                   /  _/ / /___  / /______ _      ____  _   __(_)___ ___
+                   / /  / / __ \/ //_/ __ `/_____/ __ \| | / / / __ `__ \
+                 _/ /  / / / / / ,< / /_/ /_____/ / / /| |/ / / / / / / /
+                /___/ /_/_/ /_/_/|_|\__,_/     /_/ /_/ |___/_/_/ /_/ /_/
+
+                    A Neovim plugin for editing inka2 flashcards
+
+==============================================================================
+CONTENTS                                                    *inka-nvim-contents*
+
+    1. Introduction ......................... |inka-nvim-introduction|
+    2. Installation ......................... |inka-nvim-installation|
+    3. Commands ............................. |inka-nvim-commands|
+    4. Configuration ........................ |inka-nvim-configuration|
+    5. Usage ................................ |inka-nvim-usage|
+    6. Troubleshooting ...................... |inka-nvim-troubleshooting|
+
+==============================================================================
+1. INTRODUCTION                                         *inka-nvim-introduction*
+
+inka-nvim provides a specialized editing mode for inka2 flashcards in markdown
+files. It temporarily removes answer markers (`>`) to allow natural markdown
+editing, then restores them when you're done.
+
+The plugin solves the problem of editing inka2 flashcards where the answer
+markers interfere with natural text editing and formatting.
+
+Key features:
+- Intelligent card detection from cursor position
+- Temporary marker removal for clean editing
+- Visual indicators for editing mode
+- Robust answer marker restoration
+- Support for complex inka2 card formats
+
+==============================================================================
+2. INSTALLATION                                         *inka-nvim-installation*
+
+Using lazy.nvim: >
+
+    {
+      'inka-nvim',
+      ft = 'markdown',
+      config = function()
+        require('inka-nvim').setup()
+      end,
+    }
+<
+
+Using packer.nvim: >
+
+    use {
+      'inka-nvim',
+      ft = 'markdown',
+      config = function()
+        require('inka-nvim').setup()
+      end,
+    }
+<
+
+Requirements:
+- Neovim >= 0.8.0
+- Markdown filetype plugin
+- Optional: inka2 CLI tool
+
+==============================================================================
+3. COMMANDS                                                 *inka-nvim-commands*
+
+                                                                     *:InkaEdit*
+:InkaEdit               Enter inka editing mode for the flashcard under cursor.
+                        
+                        This command:
+                        - Detects the card boundaries from cursor position
+                        - Inserts invisible HTML comment markers
+                        - Removes answer prefixes (`> `) for clean editing
+                        - Enables visual editing mode indicators
+                        
+                        Requirements:
+                        - Cursor must be within an inka2 section (between ---)
+                        - Must be in a markdown file
+                        - Cannot already be in editing mode
+
+                                                                     *:InkaSave*
+:InkaSave               Exit inka editing mode and restore answer markers.
+                        
+                        This command:
+                        - Restores answer prefixes (`> `) to answer lines
+                        - Removes HTML comment markers
+                        - Disables visual editing mode indicators
+                        
+                        Requirements:
+                        - Must currently be in inka editing mode
+
+                                                                   *:InkaStatus*
+:InkaStatus             Show debug information about current plugin state.
+                        
+                        Displays:
+                        - Current buffer and cursor information
+                        - Inka2 section detection results
+                        - Card boundary detection results
+                        - Editing mode status
+                        - Plugin configuration details
+
+==============================================================================
+4. CONFIGURATION                                       *inka-nvim-configuration*
+
+Setup function: >
+
+    require('inka-nvim').setup({
+      -- Marker strings used to delimit editing regions
+      markers = {
+        edit_start = "<!--INKA_EDIT_START-->",
+        answer_start = "<!--INKA_ANSWER_START-->", 
+        edit_end = "<!--INKA_EDIT_END-->",
+      },
+      
+      -- Visual indicators for editing mode
+      visual = {
+        statusline_text = "INKA EDIT MODE",
+        highlight_group = "InkaEditMode",
+        line_highlight = "InkaEditLine",
+      },
+      
+      -- Answer prefix that gets toggled
+      answer_prefix = "> ",
+      
+      -- Enable debug output
+      debug = false,
+    })
+<
+
+Configuration options:
+
+markers                 Table of HTML comment strings used as editing markers.
+                        These are temporarily inserted during editing mode.
+
+markers.edit_start      String marking the start of the editing region.
+                        Default: "<!--INKA_EDIT_START-->"
+
+markers.answer_start    String marking where answer content begins.
+                        Default: "<!--INKA_ANSWER_START-->"
+
+markers.edit_end        String marking the end of the editing region.
+                        Default: "<!--INKA_EDIT_END-->"
+
+visual                  Table of visual indicator configurations.
+
+visual.statusline_text  String shown in statusline during editing mode.
+                        Default: "INKA EDIT MODE"
+
+visual.highlight_group  Highlight group name for editing mode indicators.
+                        Default: "InkaEditMode"
+
+answer_prefix           String prefix for inka2 answer lines.
+                        Default: "> "
+
+debug                   Boolean to enable debug output and logging.
+                        Default: false
+
+==============================================================================
+5. USAGE                                                       *inka-nvim-usage*
+
+Basic workflow:
+
+1. Position cursor anywhere within an inka2 flashcard
+2. Run |:InkaEdit| to enter editing mode
+3. Edit content naturally without answer markers
+4. Run |:InkaSave| to restore markers and exit editing mode
+
+Example inka2 content: >
+
+    ---
+    Deck: Programming
+    
+    1. What is a closure in JavaScript?
+    
+    > A closure is a function that has access to variables
+    > from an outer scope even after the outer function
+    > has finished executing.
+    
+    2. Next question...
+    ---
+<
+
+Supported inka2 formats:
+
+Basic Q&A cards         Questions with `> ` prefixed answers
+Cloze deletion cards    Cards with {{c1::text}} syntax  
+Multi-line content      Questions and answers spanning multiple lines
+ID comments             <!--ID:123--> comments are preserved
+Complex formatting      Code blocks, lists, links, other markdown
+
+Card detection works from cursor position:
+- On question lines (numbered items like "1. Question?")
+- On answer lines (lines starting with "> ")  
+- Anywhere within the card content
+- Handles multi-line questions and answers
+- Respects card boundaries (empty lines, next questions, section ends)
+
+Visual indicators during editing mode:
+- Statusline shows "INKA EDIT MODE" text
+- Buffer state tracked per file
+- Automatic cleanup when switching buffers
+
+==============================================================================
+6. TROUBLESHOOTING                                 *inka-nvim-troubleshooting*
+
+Common error messages and solutions:
+
+"Not within an inka2 section"
+    - Ensure cursor is between --- markers
+    - Check that section has proper inka2 format
+    - Verify file is detected as markdown
+
+"Could not find numbered question"
+    - Ensure there's a numbered question above cursor
+    - Check question format (e.g., "1. Question?")
+    - Look for proper spacing and formatting
+
+"Already in inka editing mode"
+    - Use |:InkaSave| to exit current editing mode first
+    - Check |:InkaStatus| to verify current state
+
+"Failed to enter/exit inka editing mode"
+    - Enable debug mode: setup({debug = true})
+    - Check |:InkaStatus| for detailed error information
+    - Verify file content matches expected inka2 format
+
+Visual indicators not showing:
+    - Check statusline configuration
+    - Verify highlight groups are defined
+    - Use |:InkaStatus| to check plugin state
+
+Debug mode:
+Enable debug output for troubleshooting: >
+
+    require('inka-nvim').setup({ debug = true })
+<
+
+This will print detailed information about:
+- Card detection process
+- Marker insertion/removal operations
+- Plugin state changes
+- Error conditions
+
+For more help:
+- Check plugin README and documentation
+- Run |:InkaStatus| for current state information
+- Enable debug mode for detailed logging
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
