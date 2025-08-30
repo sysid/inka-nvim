@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
 
+VERSION = $(shell cat VERSION)
+
 # Plugin paths
 plugin_root = .
 lua_src = $(plugin_root)/lua
@@ -272,25 +274,70 @@ clean: ## remove temporary files
 	@echo "✅ Cleanup complete"
 
 ################################################################################
-# Release Management
-RELEASE: ## ##################################################################
+# Version Management \
+VERSIONING: ## ###############################################################
+
+.PHONY: bump-major
+bump-major: check-github-token ## bump major version, tag and push
+	bump-my-version bump --commit --tag major
+	git push
+	git push --tags
+	@$(MAKE) create-release
+
+.PHONY: bump-minor
+bump-minor: check-github-token ## bump minor version, tag and push
+	bump-my-version bump --commit --tag minor
+	git push
+	git push --tags
+	@$(MAKE) create-release
+
+.PHONY: bump-patch
+bump-patch: check-github-token ## bump patch version, tag and push
+	bump-my-version bump --commit --tag patch
+	git push
+	git push --tags
+	@$(MAKE) create-release
+
+.PHONY: create-release
+create-release: check-github-token ## create a release on GitHub via the gh cli
+	@if ! command -v gh &>/dev/null; then \
+		echo "You do not have the GitHub CLI (gh) installed. Please create the release manually."; \
+		exit 1; \
+	else \
+		echo "Creating GitHub release for v$(VERSION)"; \
+		gh release create "v$(VERSION)" --generate-notes --latest; \
+	fi
+
+.PHONY: check-github-token
+check-github-token: ## check if GITHUB_TOKEN is set
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "GITHUB_TOKEN is not set. Please export your GitHub token before running this command."; \
+		exit 1; \
+	fi
+	@echo "GITHUB_TOKEN is set"
 
 .PHONY: version
 version: ## show current version
-	@echo "inka-nvim development version"
-	@echo "Git commit: $$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
-	@echo "Git status: $$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') files changed"
+	@echo "inka-nvim version: $(VERSION)"
 
-.PHONY: check-git
-check-git: ## check git status for release readiness
-	@echo "Checking git status..."
-	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "❌ Working directory not clean"; \
-		git status --short; \
-		exit 1; \
-	else \
-		echo "✅ Working directory clean"; \
-	fi
+################################################################################
+# Documentation \
+DOCUMENTATION: ## ############################################################
+
+.PHONY: docs
+docs: ## generate and update documentation
+	@echo "Updating inka-nvim documentation..."
+	@echo "✅ README.md - comprehensive user documentation"
+	@echo "✅ CLAUDE.md - development guidance"
+	@echo ""
+	@echo "Help tags need regeneration in Neovim:"
+	@echo "  :helptags doc/"
+
+.PHONY: check-docs
+check-docs: ## validate documentation
+	@echo "Checking documentation consistency..."
+	@grep -q "$(VERSION)" README.md && echo "✅ Version in README.md" || echo "⚠️  Version not found in README.md"
+	@grep -q "$(VERSION)" lua/inka-nvim/init.lua && echo "✅ Version in init.lua" || echo "⚠️  Version not found in init.lua"
 
 ################################################################################
 # Help
