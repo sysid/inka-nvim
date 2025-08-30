@@ -1,7 +1,7 @@
 local M = {}
 local config = require('inka-nvim.config')
 
-M.version = '0.1.0'
+M.version = '0.2.0'
 
 function M.setup(user_config)
     -- Setup configuration first
